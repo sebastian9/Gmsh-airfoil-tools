@@ -1,12 +1,10 @@
 /*
-	Tool based on th airfoil coordinate dat file parser for Gmsh.
-	usage: ReadAirfoil.exe airfoil.dat params
-	The first line in the .dat file is reserved for the name, 
-  and points should not be repeated. The curve Generated is
+	Airfoil coordinate dat file parser for Gmsh.
+	usage: ReadAirfoil.exe airfoil.dat
+	The first line is reserved for the name, and points 
+	should not be repeated. The curve Generated is
 	a closed B-spline. Points should be in a standard
 	.dat list form describing a continous closed curve
-  The output is a airfoil.geo file which contains a structured
-  mesh according to the parameters.
 */
 
 #include <iostream>
@@ -50,7 +48,7 @@ int main(int argc, char *argv[])
 	           y_coord = y_coord + *it;
 	   	}
 	   	if (x_flag && y_flag)
-	   		airfoil_geo << "Point(" << point_i << ") = {" << x_coord << "," << y_coord << ",0};" << endl;
+	   		airfoil_geo << "Point(" << point_i << ") = {" << x_coord << "," << y_coord << ",0,1};" << endl;
    	} else {
    		airfoil_geo.open(line + ".geo");
    		airfoil_geo << "Geometry.LineNumbers = 1; Geometry.SurfaceNumbers = 1;" << endl;
@@ -78,8 +76,9 @@ int main(int argc, char *argv[])
    airfoil_geo << "Line(10) = {" << point_i +6 << "," << 0.5*point_i << "};" << endl;
    airfoil_geo << "Circle(11) = {" << point_i +1 << ",1," << point_i +6 << "};" << endl;
    airfoil_geo << "Circle(12) = {" << point_i +6 << ",1," << point_i +5 << "};" << endl;
-   airfoil_geo << "Transfinite Curve{1,2,11,12} = 100;" << endl; // Add bias
-   airfoil_geo << "Transfinite Curve {3:10} = 100;" << endl;
+   airfoil_geo << "Transfinite Curve{-1,2} = 100 Using Progression 1.05;" << endl; // Add bias
+   airfoil_geo << "Transfinite Curve{3,-5,7,-9,-10,-11,12} = 100 Using Progression 1.025;" << endl;
+   airfoil_geo << "Transfinite Curve {4,6,8} = 200;" << endl;
    airfoil_geo << "Curve Loop(1) = {11, 10, -1, 3};" << endl;
    airfoil_geo << "Plane Surface(1) = {1};" << endl;
    airfoil_geo << "Curve Loop(2) = {12, 9, -2, -10};" << endl;
@@ -88,11 +87,11 @@ int main(int argc, char *argv[])
    airfoil_geo << "Plane Surface(3) = {3};" << endl;
    airfoil_geo << "Curve Loop(4) = {6, -9, -8, -7};" << endl;
    airfoil_geo << "Plane Surface(4) = {4};" << endl;
-   airfoil_geo << "Transfinite Surface {4} = {77, 1, 75, 76};" << endl;
-   airfoil_geo << "Transfinite Surface {3} = {1, 73, 74, 75};" << endl;
-   airfoil_geo << "Transfinite Surface {2} = {1, 36, 78, 77};" << endl;
-   airfoil_geo << "Transfinite Surface {1} = {36, 78, 73, 1};" << endl;
-   airfoil_geo << "Recombine Surface{1,2,3,4}" << endl;  
+   airfoil_geo << "Transfinite Surface {4} = {" << point_i +5 << ", 1, " << point_i +3 << ", " << point_i +4 << "};" << endl;
+   airfoil_geo << "Transfinite Surface {3} = {1, " << point_i +1 << ", " << point_i +2 << ", " << point_i +3 << "};" << endl;
+   airfoil_geo << "Transfinite Surface {2} = {1, " << 0.5*point_i << ", " << point_i +6 << ", " << point_i +5 << "};" << endl;
+   airfoil_geo << "Transfinite Surface {1} = {" << 0.5*point_i << ", " << point_i +6 << ", " << point_i +1 << ", 1};" << endl;
+   airfoil_geo << "Recombine Surface{1,2,3,4};" << endl;  
 
    airfoil_dat.close();
    airfoil_geo.close();
