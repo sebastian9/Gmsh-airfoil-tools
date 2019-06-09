@@ -11,17 +11,21 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <cmath>
 
 using namespace std;
 
+vector<vector<double>> dxdS(vector<double> x,vector<double> y);
+
 int main(int argc, char *argv[])
 {
+   /* Read .dat airfoil file */
+   vector<double> x,y;
    string x_coord, y_coord;
    bool space1_flag, space2_flag, x_flag, y_flag, is_coord;
    ifstream airfoil_dat(argv[1]);
    ofstream airfoil_geo;
 
-   bool first_line = 0;
    int point_i = 0;
    // While the string continues
    for (string line; getline(airfoil_dat, line); ) {
@@ -48,18 +52,35 @@ int main(int argc, char *argv[])
 	           y_coord = y_coord + *it;
 	   	}
 	   	if (x_flag && y_flag)
-	   		airfoil_geo << "Point(" << point_i << ") = {" << x_coord << "," << y_coord << ",0,1};" << endl;
+            x.push_back(stod(x_coord)); 
+            y.push_back(stod(y_coord)); 
+            // cout << x[point_i-1]  << "," << y[point_i-1] << endl;
+	   		airfoil_geo << "Point(" << point_i++ << ") = {" << x_coord << "," << y_coord << ",0};" << endl;
    	} else {
    		airfoil_geo.open(line + ".geo");
    		airfoil_geo << "Geometry.LineNumbers = 1; Geometry.SurfaceNumbers = 1;" << endl;
    	}
-   	if (y_flag || point_i == 0)
+   	if (point_i == 0)
    		point_i++;
    }
    point_i--;
 
+   /* Airfoil Creation */
    airfoil_geo << "BSpline(1) = {1:" << 0.5*point_i << "};" << endl;
    airfoil_geo << "BSpline(2) = {" << 0.5*point_i << ":" << point_i -1 << ",1};" << endl;
+
+   /* Boundary Layer */
+   double x_coord_d, y_coord_d;
+   vector<vector<double>> delta = dxdS(x,y);
+   for (int j = 0; j <= 5; j++) {
+      for (int i = 0; i <= delta[0].size(); i++) {
+         x_coord_d = x[i] + delta[0][i]*0.01*j;
+         y_coord_d = y[i] + delta[1][i]*0.01*j;
+         airfoil_geo << "Point(" << point_i++ << ") = {" << x_coord_d << "," << y_coord_d << ",0};" << endl;
+      }
+   }
+
+   /* Cotrol Volume */
    airfoil_geo << "Point(" << point_i +1 << ") = {1,5,0};" << endl;
    airfoil_geo << "Point(" << point_i +2 << ") = {6,5,0};" << endl;
    airfoil_geo << "Point(" << point_i +3 << ") = {6,0,0};" << endl;
@@ -96,6 +117,19 @@ int main(int argc, char *argv[])
    airfoil_dat.close();
    airfoil_geo.close();
    return 0;
+}
+
+vector<vector<double>> dxdS(vector<double> x,vector<double> y) {
+   vector<vector<double>> out(2,vector<double>(x.size()-1));
+   for(int i = 0; i <= x.size()-1; i++) {
+      double dx = x[i]-x[i+1];
+      double dy = abs(y[i]-y[i+1]);
+      double ds = pow(pow(dx,2)+pow(dy,2),0.5);
+      // cout << dx/ds << "," << -dy/ds << endl;
+      out[0][i] = -dy/ds;
+      out[1][i] = dx/ds;
+   }
+   return out;
 }
    /* 
    
