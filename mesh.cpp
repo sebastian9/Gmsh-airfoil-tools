@@ -1,12 +1,25 @@
-/*
-	Airfoil coordinate dat file parser for Gmsh.
-	usage: ReadAirfoil.exe airfoil.dat
-	The first line is reserved for the name, and points
-	should not be repeated. The curve Generated is
-	a closed B-spline. Points should be in a standard
-	.dat list form describing a continous closed curve
-   beginning and ending in 1,0
-*/
+/*----------------------------------------------------------------------------------------------------------------------
+
+2D Airfoil mesher for Gmsh.
+
+Usage:
+
+        mesh.exe bl_thickness hwall_n ratio hfar airfoil_list
+
+The first line is reserved for the name, and points
+should not be repeated. The curve generated is
+a closed B-spline.  Points should be in a standard
+Selig format airfoil coordinate file.
+
+Usage example:
+
+        mesh.exe 0.05 0.000001 1.3 1.5 "CH10-(smoothed).dat" e423.dat FX-84-W-150.dat S1223.dat
+
+Refer to http://gmsh.info/doc/texinfo/gmsh.html for documentation on Gmsh
+
+License: MIT License Copyright 2019 Sebastian Lopez Sanchez http://github.com/sebastian9
+
+----------------------------------------------------------------------------------------------------------------------*/
 
 #include <iostream>
 #include <string>
@@ -18,114 +31,184 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-   /* Read .dat airfoil file */
-   vector<double> x,y;
-   string x_coord, y_coord;
-   bool space1_flag, space2_flag, x_flag, y_flag, is_coord;
-   ifstream airfoil_dat(argv[1]);
-   ofstream airfoil_geo;
+  if (!argv[1]) {
+    cout << "\n----------------------------------------------------------------------------------------------------------------------\n" << endl;
+    cout << "\t2D Airfoil mesher for Gmsh." << endl;
+    cout << "\n\tUsage: \n\n\t\tmesh.exe bl_thickness hwall_n ratio hfar airfoil_list\n" << endl;
+    cout << "\tThe first line is reserved for the name, and points" << endl;
+    cout << "\tshould not be repeated. The curve generated is" << endl;
+    cout << "\ta closed B-spline.  Points should be in a standard" << endl;
+    cout << "\tSelig format airfoil coordinate file." << endl;
+    cout << "\n\tUsage example: \n\n\t\tmesh.exe 0.05 0.000001 1.3 1.5 \"CH10-(smoothed).dat\" e423.dat FX-84-W-150.dat S1223.dat\n" << endl;
+    cout << "\tRefer to http://gmsh.info/doc/texinfo/gmsh.html for documentation on Gmsh" << endl;
+    cout << "\n\tLicense: MIT License Copyright 2019 Sebastian Lopez Sanchez http://github.com/sebastian9" << endl;
+    cout << "\n----------------------------------------------------------------------------------------------------------------------" << endl;
+    return 0;
+  }
+  /* Boundary Layer Configuration Variables */
+  float bl_thickness = atof(argv[1]);
+  float bl_hwall_n = atof(argv[2]);
+  float bl_ratio = atof(argv[3]);
+  float bl_hfar = atof(argv[4]);
 
-   int curve_i = 0;
-   int point_i = 0;
-   // While the string continues
-   for (string line; getline(airfoil_dat, line); ) {
-      x_coord = y_coord = "";
-      space1_flag = space2_flag = x_flag = y_flag = 0;
-      if (point_i) { // Skip first line
+  /* Mesh airfoils in the list */
+   for (int arg_i=5; arg_i<argc; arg_i++) {
+     /* Read .dat airfoil file */
+     vector<double> x,y;
+     string x_coord, y_coord, airfoil_name;
+     bool space1_flag, space2_flag, x_flag, y_flag, is_coord;
+     ifstream airfoil_dat(argv[arg_i]);
+     ofstream airfoil_geo;
+
+     int curve_i = 0;
+     int point_i = 0;
+     // While the string continues
+     for (string line; getline(airfoil_dat, line); ) {
+       x_coord = y_coord = "";
+       space1_flag = space2_flag = x_flag = y_flag = 0;
+       if (point_i) { // Skip first line
          // For every position in the current line
          for (string::iterator it = line.begin(); it != line.end(); ++it) {
-            string str(1,*it);
-            is_coord = (str != " " && str != "\n");
+           string str(1,*it);
+           is_coord = (str != " " && str != "\n");
 
-            // Determine position in the line
+           // Determine position in the line
            if ( !(space2_flag) && !(x_flag) && !(y_flag) && is_coord )
-              x_flag = 1;
+           x_flag = 1;
            if ( !(space2_flag) && x_flag && !(y_flag) && !(is_coord) )
-              space2_flag = 1;
+           space2_flag = 1;
            if ( space2_flag && x_flag && !(y_flag) && is_coord )
-              y_flag = 1;
+           y_flag = 1;
 
-            // Register coordinates
+           // Register coordinates
            if ( !(space2_flag) && x_flag && !(y_flag) && is_coord )
-              x_coord = x_coord + *it;
+           x_coord = x_coord + *it;
            if ( space2_flag && x_flag && y_flag && is_coord )
-              y_coord = y_coord + *it;
+           y_coord = y_coord + *it;
          }
          if (x_flag && y_flag)
-            x.push_back(stod(x_coord));
-            y.push_back(stod(y_coord));
-      } else {
-         airfoil_geo.open(line + ".geo");
+         x.push_back(stod(x_coord));
+         y.push_back(stod(y_coord));
+       } else {
+         airfoil_name = line;
+         airfoil_geo.open(airfoil_name + ".geo");
          airfoil_geo << "Geometry.LineNumbers = 1; Geometry.SurfaceNumbers = 1;" << endl;
          //airfoil_geo << "Geometry.PointNumbers = 1;" << endl;
-      }
-      if (point_i == 0)
-         point_i++;
-   }
-   x.pop_back();y.pop_back(); // erase (0,0) at the end
+       }
+       if (point_i == 0)
+       point_i++;
+     }
+     x.pop_back();y.pop_back(); // erase (0,0) at the end
 
-   /* Airfoil Points Creation in Gmsh File */
-   for (int i =  0; i <= x.size(); i++)
+     /* Airfoil Points Creation in Gmsh File */
+     for (int i =  0; i <= x.size(); i++)
       airfoil_geo << "Point(" << point_i++ << ") = {" << x[i] << "," << y[i] << ",0};" << endl;
-      //cout << x[i]  << "," << y[i] << endl;
-   // Points corresponding to the different sections
-   int sp_start = 1;
-   int sp_end = point_i-1;
-   int le_up = floor(0.5*0.75*(sp_end-sp_start)+sp_start);
-   int sp_50 = floor(0.5*(sp_end-sp_start)+sp_start);
-   int le_do = floor(0.625*(sp_end-sp_start)+sp_start);
+     //cout << x[i]  << "," << y[i] << endl;
 
-   /* Airfoil Curve Creation */
-   int curve_loop_i = 0;
-   airfoil_geo << "BSpline(" << ++curve_i << ") = {" << sp_start << ":" << le_up << "};" << endl;
-   airfoil_geo << "Transfinite Curve {-" << curve_i << "} = 150 Using Progression 1.01;" << endl;
-   airfoil_geo << "BSpline(" << ++curve_i << ") = {" << le_up << ":" << sp_50 << "};" << endl;
-   airfoil_geo << "Transfinite Curve {-" << curve_i << "} = 50 Using Bump 1.01;" << endl;
-   airfoil_geo << "BSpline(" << ++curve_i << ") = {" << sp_50 << ":" << le_do << "};" << endl;
-   airfoil_geo << "Transfinite Curve {" << curve_i << "} = 50 Using Bump 1.01;" << endl;
-   airfoil_geo << "BSpline(" << ++curve_i << ") = {" << le_do << ":" << sp_end << "};" << endl;
-   airfoil_geo << "Transfinite Curve {" << curve_i << "} = 150 Using Progression 1.01;" << endl;
-   airfoil_geo << "Line(" << ++curve_i << ") = {" << sp_end << "," << sp_start << "};" << endl; // Close Trailing Edge
-   airfoil_geo << "Curve Loop(" << ++curve_loop_i << ") = {" << curve_i-4 << "," << curve_i-3 << "," << curve_i-2 << "," << curve_i-1 << "," << curve_i << "};" << endl;
+     // Points corresponding to the different sections
+     int sp_start = 1;
+     int sp_end = point_i-1;
+     int le_up = floor(0.5*0.75*(sp_end-sp_start)+sp_start);
+     int sp_50 = floor(0.5*(sp_end-sp_start)+sp_start);
+     int le_do = floor(0.625*(sp_end-sp_start)+sp_start);
 
-   airfoil_geo << "Extrude { Curves {" << curve_i-4 << "," << curve_i-3 << "," << curve_i-2 << "," << curve_i-1 << "," << curve_i << "}; Layers{ {1,4,2}, {0.5, 0.6, 1.6} } }" << endl;
+     /* Airfoil Curve Creation */
+     int curve_loop_i = 0;
+     if (x[x.size()] == x[0] && y[y.size()] == y[0]) { // If closed trailing edge
+       airfoil_geo << "BSpline(" << ++curve_i << ") = {" << sp_start << ":" << le_up << "};" << endl;
+       airfoil_geo << "Transfinite Curve {-" << curve_i << "} = 150 Using Progression 1.01;" << endl;
+       airfoil_geo << "BSpline(" << ++curve_i << ") = {" << le_up << ":" << sp_50 << "};" << endl;
+       airfoil_geo << "Transfinite Curve {-" << curve_i << "} = 50 Using Bump 1.01;" << endl;
+       airfoil_geo << "BSpline(" << ++curve_i << ") = {" << sp_50 << ":" << le_do << "};" << endl;
+       airfoil_geo << "Transfinite Curve {" << curve_i << "} = 50 Using Bump 1.01;" << endl;
+       airfoil_geo << "BSpline(" << ++curve_i << ") = {" << le_do << ":" << sp_end << ",1};" << endl;
+       airfoil_geo << "Transfinite Curve {" << curve_i << "} = 150 Using Progression 1.01;" << endl;
+       airfoil_geo << "Curve Loop(" << ++curve_loop_i << ") = {" << curve_i-3 << "," << curve_i-2 << "," << curve_i-1 << "," << curve_i << "};" << endl;
+     } else {
+       airfoil_geo << "BSpline(" << ++curve_i << ") = {" << sp_start << ":" << le_up << "};" << endl;
+       airfoil_geo << "Transfinite Curve {-" << curve_i << "} = 150 Using Progression 1.01;" << endl;
+       airfoil_geo << "BSpline(" << ++curve_i << ") = {" << le_up << ":" << sp_50 << "};" << endl;
+       airfoil_geo << "Transfinite Curve {-" << curve_i << "} = 50 Using Bump 1.01;" << endl;
+       airfoil_geo << "BSpline(" << ++curve_i << ") = {" << sp_50 << ":" << le_do << "};" << endl;
+       airfoil_geo << "Transfinite Curve {" << curve_i << "} = 50 Using Bump 1.01;" << endl;
+       airfoil_geo << "BSpline(" << ++curve_i << ") = {" << le_do << ":" << sp_end << "};" << endl;
+       airfoil_geo << "Transfinite Curve {" << curve_i << "} = 150 Using Progression 1.01;" << endl;
+       airfoil_geo << "Line(" << ++curve_i << ") = {" << sp_end << "," << sp_start << "};" << endl; // Close Trailing Edge
+       airfoil_geo << "Curve Loop(" << ++curve_loop_i << ") = {" << curve_i-4 << "," << curve_i-3 << "," << curve_i-2 << "," << curve_i-1 << "," << curve_i << "};" << endl;
+     }
 
-   /* Control Volume */
-   airfoil_geo << "Point(" << point_i +1 << ") = {1,100,0};" << endl;
-   airfoil_geo << "Point(" << point_i +2 << ") = {1,-100,0};" << endl;
-   airfoil_geo << "Circle(" << ++curve_i << ") = {" << point_i +1 << ",1," << point_i +2 << "};" << endl;
-   airfoil_geo << "Circle(" << ++curve_i << ") = {" << point_i +2 << ",1," << point_i +1 << "};" << endl;
-   airfoil_geo << "Curve Loop(" << ++curve_loop_i << ") = {" << curve_i-1 << "," << curve_i << "};" << endl;
+     /* Control Volume */
+     airfoil_geo << "Point(" << point_i +1 << ") = {1,100,0};" << endl;
+     airfoil_geo << "Point(" << point_i +2 << ") = {1,-100,0};" << endl;
+     airfoil_geo << "Circle(" << ++curve_i << ") = {" << point_i +1 << ",1," << point_i +2 << "};" << endl;
+     airfoil_geo << "Circle(" << ++curve_i << ") = {" << point_i +2 << ",1," << point_i +1 << "};" << endl;
+     airfoil_geo << "Curve Loop(" << ++curve_loop_i << ") = {" << curve_i-1 << "," << curve_i << "};" << endl;
 
-   /* Surface Creation */
-   int surface_i = 0;
-   airfoil_geo << "Plane Surface(" << ++surface_i << ") = {" << curve_loop_i << "," << curve_loop_i-1 << "};" << endl;
+     /* Surface Creation */
+     int surface_i = 0;
+     airfoil_geo << "Plane Surface(" << ++surface_i << ") = {" << curve_loop_i << "," << curve_loop_i-1 << "};" << endl;
 
+     /* Boundary Layer */
+     airfoil_geo << "Field[1] = BoundaryLayer;" << endl;
+     airfoil_geo << "Field[1].thickness = " << bl_thickness << ";" << endl;
+     airfoil_geo << "Field[1].hwall_n = " << bl_hwall_n << ";" << endl;
+     airfoil_geo << "Field[1].ratio = " << bl_ratio << ";" << endl;
+     airfoil_geo << "Field[1].hfar = " << bl_hfar << ";" << endl;
+     airfoil_geo << "Field[1].Quads = 1;" << endl;
+     if (x[x.size()] == x[0] && y[y.size()] == y[0]) { // If closed trailing edge
+       airfoil_geo << "Field[1].EdgesList = {1,2,3,4};" << endl;
+       airfoil_geo << "Field[1].FanNodesList = {1};" << endl;
+     } else {
+       airfoil_geo << "Field[1].EdgesList = {1,2,3,4,5};" << endl;
+       airfoil_geo << "Field[1].FanNodesList = {1," << x.size()+1 << "};" << endl;
+     }
+     airfoil_geo << "BoundaryLayer Field = 1;" << endl;
 
-   // airfoil_geo << "Field[1] = BoundaryLayer;" << endl;
-   // airfoil_geo << "Field[1].EdgesList = {1,2,3,4};" << endl;
-   // airfoil_geo << "Field[1].thickness = 0.1;" << endl;
-   // airfoil_geo << "Field[1].hwall_n = 1e-6;" << endl;
-   // airfoil_geo << "Field[1].ratio = 1.1;" << endl;
-   // airfoil_geo << "Field[1].hfar = 1;" << endl;
-   // airfoil_geo << "Background Field = 2;" << endl;
+     /* Boundary Conditions */
+     if (x[x.size()] == x[0] && y[y.size()] == y[0]) { // If closed trailing edge
+       airfoil_geo << "Physical Curve(\"airfoil\") = {1, 2, 3, 4};" << endl;
+       airfoil_geo << "Physical Curve(\"farfield\") = {5, 6};" << endl;
+       airfoil_geo << "Physical Surface(\"fluid\") = {1};" << endl;
+     } else {
+       airfoil_geo << "Physical Curve(\"airfoil\") = {1, 2, 3, 4, 5};" << endl;
+       airfoil_geo << "Physical Curve(\"farfield\") = {6, 7};" << endl;
+       airfoil_geo << "Physical Surface(\"fluid\") = {1};" << endl;
+     }
 
-   airfoil_dat.close();
-   airfoil_geo.close();
+     /* Mesh */
+     airfoil_geo << "SetOrder 2;" << endl; // Improves agreement of the bspline and the mesh
+	   airfoil_geo << "Mesh.Format = 42;" << endl; // SU2 Format
+     airfoil_geo << "Mesh 2;" << endl;
+     airfoil_geo << "Save \"" << airfoil_name << ".su2\";" << endl; // Save 1D Mesh
+
+     airfoil_dat.close();
+     airfoil_geo.close();
+     system(("gmsh.exe \"" + airfoil_name + ".geo\"").c_str()); // Execute Gmsh with input script
+   }
    return 0;
 }
-
 /*
-   BOUNDARY LAYER FOR UNSTRUCTURED MESHES
 
-   airfoil_geo << "Field[1] = Distance;" << endl;
-   airfoil_geo << "Field[1].NNodesByEdge = 100;" << endl;
-   airfoil_geo << "Field[1].EdgesList = {1,2};" << endl;
-   airfoil_geo << "Field[2] = BoundaryLayer;" << endl;
-   airfoil_geo << "Field[2].EdgesList = {1,2};" << endl;
-   airfoil_geo << "Field[2].thickness = 0.1;" << endl;
-   airfoil_geo << "Field[2].hwall_n = 1e-6;" << endl;
-   airfoil_geo << "Field[2].ratio = 1.1;" << endl;
-   airfoil_geo << "Field[2].hfar = 1;" << endl;
-   airfoil_geo << "Background Field = 2;" << endl;
+License:
+
+Copyright 2019 Sebastián López Sánchez
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 */
