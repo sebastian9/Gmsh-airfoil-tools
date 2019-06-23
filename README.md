@@ -17,8 +17,6 @@ Usage example:
 
 Refer to http://gmsh.info/doc/texinfo/gmsh.html for documentation on Gmsh
 
-License: MIT License Copyright 2019 Sebastian Lopez Sanchez http://github.com/sebastian9
-
 # Gmsh-airfoil (ReadAirfoil.cpp)
 
 A C++ code to format an airfoil .dat file into a .geo file for gmsh
