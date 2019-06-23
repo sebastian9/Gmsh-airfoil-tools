@@ -1,21 +1,23 @@
 # Gmsh 2D Airfoil Mesher (mesh.cpp)
 
-        Usage:
+2D Airfoil mesher for Gmsh.
 
-                mesh.exe bl_thickness hwall_n ratio hfar airfoil_list
+Usage:
 
-        The first line is reserved for the name, and points
-        should not be repeated. The curve generated is
-        a closed B-spline.  Points should be in a standard
-        Selig format airfoil coordinate file.
+        mesh.exe bl_thickness hwall_n ratio hfar airfoil_list
 
-        Usage example:
+The first line is reserved for the name, and points
+should not be repeated. The curve generated is
+a closed B-spline.  Points should be in a standard
+Selig format airfoil coordinate file.
 
-                mesh.exe 0.05 0.000001 1.3 1.5 "CH10-(smoothed).dat" e423.dat FX-84-W-150.dat S1223.dat
+Usage example:
 
-        Refer to http://gmsh.info/doc/texinfo/gmsh.html for documentation on Gmsh
+        mesh.exe 0.05 0.000001 1.3 1.5 "CH10-(smoothed).dat" e423.dat FX-84-W-150.dat S1223.dat
 
-        License: MIT License Copyright 2019 Sebastian Lopez Sanchez http://github.com/sebastian9
+Refer to http://gmsh.info/doc/texinfo/gmsh.html for documentation on Gmsh
+
+License: MIT License Copyright 2019 Sebastian Lopez Sanchez http://github.com/sebastian9
 
 # Gmsh-airfoil (ReadAirfoil.cpp)
 
