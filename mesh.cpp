@@ -1,50 +1,75 @@
 /*----------------------------------------------------------------------------------------------------------------------
 
-2D Airfoil mesher for Gmsh.
+        2D Airfoil mesher for Gmsh.
 
-Usage:
+        Usage:
 
-        mesh.exe bl_thickness hwall_n ratio hfar airfoil_list
+                mesh.exe bl_thickness hwall_n ratio hfar airfoil_list
 
-The first line is reserved for the name, and points
-should not be repeated. The curve generated is
-a closed B-spline.  Points should be in a standard
-Selig format airfoil coordinate file.
+        The first line is reserved for the name. The curve generated is a
+        closed B-spline.  Points should be in a standard Selig format airfoil
+        coordinate file.
 
-Usage example:
+        Usage example:
 
-        mesh.exe 0.05 0.000001 1.3 1.5 "CH10-(smoothed).dat" e423.dat FX-84-W-150.dat S1223.dat
+                mesh.exe 0.05 0.000001 1.3 1.5 "CH10-(smoothed).dat" e423.dat FX-84-W-150.dat S1223.dat
 
-Refer to http://gmsh.info/doc/texinfo/gmsh.html for documentation on Gmsh
+        Refer to http://gmsh.info/doc/texinfo/gmsh.html for documentation on Gmsh
 
-License: MIT License Copyright 2019 Sebastian Lopez Sanchez http://github.com/sebastian9
+        License: MIT License Copyright 2019 Sebastian Lopez Sanchez http://github.com/sebastian9
 
 ----------------------------------------------------------------------------------------------------------------------*/
+
+#define _WIN32_WINNT 0x0500 // For console resizing
 
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <vector>
 #include <cmath>
+#include <windows.h>
 
 using namespace std;
 
 int main(int argc, char *argv[])
 {
-  if (!argv[1]) {
-    cout << "\n----------------------------------------------------------------------------------------------------------------------\n" << endl;
-    cout << "\t2D Airfoil mesher for Gmsh." << endl;
-    cout << "\n\tUsage: \n\n\t\tmesh.exe bl_thickness hwall_n ratio hfar airfoil_list\n" << endl;
-    cout << "\tThe first line is reserved for the name, and points" << endl;
-    cout << "\tshould not be repeated. The curve generated is" << endl;
-    cout << "\ta closed B-spline.  Points should be in a standard" << endl;
-    cout << "\tSelig format airfoil coordinate file." << endl;
+  /* Resize Console to show presentation */
+  HWND console = GetConsoleWindow();
+  RECT r;
+  GetWindowRect(console, &r);
+
+  /* Presentation */
+  if (!argv[1] || argc < 5) {
+    // MoveWindow(window_handle, x, y, width, height, redraw_window);
+    MoveWindow(console, r.left, r.top, 950, 450, TRUE);
+    cout << "\n------------------------------------------ 2D Airfoil mesher for Gmsh -------------------------------------------\n" << endl;
+    cout << "\tUsage: \n\n\t\tmesh.exe bl_thickness hwall_n ratio hfar airfoil_list\n" << endl;
+    cout << "\tThe first line is reserved for the name. The curve generated is a" << endl;
+    cout << "\tclosed B-spline.  Points should be in a standard Selig format airfoil" << endl;
+    cout << "\tcoordinate file." << endl;
     cout << "\n\tUsage example: \n\n\t\tmesh.exe 0.05 0.000001 1.3 1.5 \"CH10-(smoothed).dat\" e423.dat FX-84-W-150.dat S1223.dat\n" << endl;
     cout << "\tRefer to http://gmsh.info/doc/texinfo/gmsh.html for documentation on Gmsh" << endl;
     cout << "\n\tLicense: MIT License Copyright 2019 Sebastian Lopez Sanchez http://github.com/sebastian9" << endl;
-    cout << "\n----------------------------------------------------------------------------------------------------------------------" << endl;
+    cout << "\n-----------------------------------------------------------------------------------------------------------------" << endl;
     return 0;
+  } else {
+    // MoveWindow(window_handle, x, y, width, height, redraw_window);
+    MoveWindow(console, r.left, r.top, 950, 640, TRUE);
+    cout << "\n------------------------------------------ 2D Airfoil mesher for Gmsh -------------------------------------------\n" << endl;
+    cout << "\tMeshing: \n\n\t\t";
+    for (int arg_i=5; arg_i<argc; arg_i++)
+      cout << argv[arg_i] << ", ";
+    cout << endl;
+    cout << "\n\tMaximal thickness of the boundary layer: \n\n\t\t" << argv[1] << endl;
+    cout << "\n\tMesh Size Normal to the The Wall: \n\n\t\t" << argv[2] << endl;
+    cout << "\n\tSize Ratio Between Two Successive Layers: \n\n\t\t" << argv[3] << endl;
+    cout << "\n\tElement size far from the wall: \n\n\t\t" << argv[4] << endl;
+    cout << "\n\tGenerator function: hwall * ratio^(dist/hwall)\n" << endl;
+    cout << "\tRefer to http://gmsh.info/doc/texinfo/gmsh.html for documentation on Gmsh" << endl;
+    cout << "\n\tLicense: MIT License Copyright 2019 Sebastian Lopez Sanchez http://github.com/sebastian9" << endl;
+    cout << "\n-----------------------------------------------------------------------------------------------------------------" << endl;
   }
+
   /* Boundary Layer Configuration Variables */
   float bl_thickness = atof(argv[1]);
   float bl_hwall_n = atof(argv[2]);
@@ -138,10 +163,11 @@ int main(int argc, char *argv[])
      }
 
      /* Control Volume */
-     airfoil_geo << "Point(" << point_i +1 << ") = {1,100,0};" << endl;
-     airfoil_geo << "Point(" << point_i +2 << ") = {1,-100,0};" << endl;
-     airfoil_geo << "Circle(" << ++curve_i << ") = {" << point_i +1 << ",1," << point_i +2 << "};" << endl;
-     airfoil_geo << "Circle(" << ++curve_i << ") = {" << point_i +2 << ",1," << point_i +1 << "};" << endl;
+     airfoil_geo << "Point(" << point_i +1 << ") = {0.5,100,0};" << endl;
+     airfoil_geo << "Point(" << point_i +2 << ") = {0.5,0,0};" << endl;
+     airfoil_geo << "Point(" << point_i +3 << ") = {0.5,-100,0};" << endl;
+     airfoil_geo << "Circle(" << ++curve_i << ") = {" << point_i +1 << "," << point_i +2 << "," << point_i +3 << "};" << endl;
+     airfoil_geo << "Circle(" << ++curve_i << ") = {" << point_i +3 << "," << point_i +2 << "," << point_i +1 << "};" << endl;
      airfoil_geo << "Curve Loop(" << ++curve_loop_i << ") = {" << curve_i-1 << "," << curve_i << "};" << endl;
 
      /* Surface Creation */
